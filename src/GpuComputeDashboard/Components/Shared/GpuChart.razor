@@ -10,7 +10,7 @@
     </svg>
 </div>
 <div class="chart-labels"><span>Oldest sample</span><span>Recent (up to 30 minutes)</span><span>Now</span></div>
-<div class="chart-legend"><span><i class="key blue"></i>GPU load</span><span><i class="key purple"></i>VRAM %</span><span class="right">Unavailable data is not interpolated</span></div>
+<div class="chart-legend"><span><i class="key blue"></i>GPU load</span><span><i class="key purple"></i>VRAM %</span><span class="right">Only samples reported by the driver are plotted</span></div>
 @code {
     [Parameter] public IReadOnlyList<TelemetryPoint> Points { get; set; } = [];
     private string PointsFor(Func<TelemetryPoint, double?> selector)

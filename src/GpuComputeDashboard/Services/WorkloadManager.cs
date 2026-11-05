@@ -87,6 +87,8 @@ public sealed class WorkloadManager(ProcessRunner runner, IOptions<DashboardOpti
 
     public IReadOnlyList<MountState> GetMounts()
     {
+        if (options.DemoMode)
+            return options.Mounts.Select(m => new MountState(m.Path, m.Source, true, m.Source, "nfs4 (demo)")).ToArray();
         var mounts = new Dictionary<string, (string Source, string Type)>(StringComparer.Ordinal);
         try
         {

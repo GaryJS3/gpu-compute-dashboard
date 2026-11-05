@@ -26,7 +26,7 @@ cd src/GpuComputeDashboard
 dotnet run
 ```
 
-Development mode uses sample data. Open the local URL printed by ASP.NET Core (configured default **http://127.0.0.1:5088**).
+The included launch profile sets Development mode, which uses sample data. To bypass the launch profile, set ASPNETCORE_ENVIRONMENT explicitly. Open the local URL printed by ASP.NET Core (configured default **http://127.0.0.1:5088**).
 
 To test real telemetry locally:
 
@@ -54,7 +54,7 @@ systemctl --user list-unit-files --type=service
 systemctl show comfyui.service --property=ActiveState,SubState,MainPID,MemoryCurrent
 ```
 
-The service account running the dashboard must have access to the correct **user systemd manager** for `systemctl --user` and `journalctl --user` to work. For the V100, installing/running the dashboard under user `ai` is the simplest option. The service file in `deploy/` is a starter template; review paths and sandbox restrictions on the actual machine.
+For Llama Monitor, prefer running the dashboard as a **user-level service** using \`deploy/gpu-dashboard.user.service\` (and \`loginctl enable-linger ai\`). This makes \`systemctl --user\` control available. The service account running the dashboard must have access to the correct **user systemd manager** for `systemctl --user` and `journalctl --user` to work. For the V100, installing/running the dashboard under user `ai` is the simplest option. The service file in `deploy/` is a starter template; review paths and sandbox restrictions on the actual machine.
 
 Set `Dashboard:EnableServiceControls` to `true` **only after** adding authentication/authorization or restricting access to trusted administrators. The app never runs arbitrary command text; all operations target configured, validated systemd units.
 

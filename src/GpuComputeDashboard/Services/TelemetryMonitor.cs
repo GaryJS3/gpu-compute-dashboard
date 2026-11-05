@@ -47,7 +47,7 @@ public sealed class TelemetryMonitor(ProcessRunner runner, IOptions<DashboardOpt
         var wave = Math.Sin(now.ToUnixTimeSeconds() / 31.0);
         return new(now, true,
             new(options.NodeName, "Ubuntu 24.04.4 LTS", 24, 38 + wave * 5, 17.9, 32, 54, 128, TimeSpan.FromDays(12.17)),
-            new("Tesla V100-SXM2-32GB", "NVIDIA", "580.178.04", 72 + wave * 8,
+            new("Tesla V100-PCIE-32GB", "NVIDIA", "580.178.04", 72 + wave * 8,
                 23.1, 32, 68 + wave * 2, 212 + wave * 14, 1290, 877, "Demo"));
     }
 
