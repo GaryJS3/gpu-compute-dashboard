@@ -31,7 +31,7 @@ public sealed class WorkloadManager(ProcessRunner runner, IOptions<DashboardOpti
     {
         WorkloadState State(string state, string sub = "", int? pid = null, double? memory = null, string? error = null)
             => new(workload.Id, workload.Name, workload.Unit, workload.Scope, workload.Category,
-                workload.Description, workload.Url, workload.Path, workload.Port, state, sub, pid, memory, error);
+                workload.Description, workload.Url, workload.Path, workload.Port, state, sub, pid, memory, error, workload.ShowInApplications);
 
         if (options.DemoMode)
             return State(demoRunning.GetOrAdd(workload.Id, true) ? "active" : "inactive", "demo",

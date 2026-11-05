@@ -3,9 +3,9 @@
 @inject WorkloadManager Manager
 
 <PageTitle>Applications · VectorGPU</PageTitle>
-<div class="page-head"><div><div class="eyebrow"><span class="blue-dot"></span> APPLICATION WORKSPACE</div><h1>Applications<span class="accent">.</span></h1><p>Quick access to configured local services and their management pages.</p></div><a href="/workloads" class="button primary">Manage services ↗</a></div>
+<div class="page-head"><div><div class="eyebrow"><span class="blue-dot"></span> APPLICATION WORKSPACE</div><h1>Applications<span class="accent">.</span></h1><p>Launch configured applications and check their service status.</p></div><a href="/workloads" class="button primary">Manage services ↗</a></div>
 <div class="application-grid">
-@foreach (var item in services)
+@foreach (var item in services.Where(item => item.ShowInApplications))
 {
     <article class="panel app-card">
         <div class="app-card-top"><span class="app-logo">@Icon(item.Category)</span><span class="state-tag @(item.Running ? "up" : "")"><span class="status-indicator @(item.Running ? "" : "warning")"></span>@item.State</span></div>
