@@ -24,7 +24,8 @@ public sealed record TelemetryPoint(DateTimeOffset Timestamp, double? GpuPercent
 public sealed record WorkloadState(
     string Id, string Name, string Unit, string Scope, string Category,
     string Description, string? Url, string? Path, int? Port, string State,
-    string SubState, int? Pid, double? MemoryMb, string? Error = null, bool ShowInApplications = true)
+    string SubState, int? Pid, double? MemoryMb, string? Error = null, bool ShowInApplications = true,
+    TimeSpan? CpuTime = null, int? Tasks = null)
 {
     public bool Running => State == "active";
     public bool Missing => State == "not-found";

@@ -71,9 +71,10 @@ Run as `ai` from this checkout on the VM. This host already has systemd user lin
 dotnet publish src/GpuComputeDashboard/GpuComputeDashboard.csproj -c Release -o "$HOME/.local/share/gpu-dashboard"
 install -Dm644 deploy/gpu-dashboard.user.service "$HOME/.config/systemd/user/gpu-dashboard.service"
 bash deploy/ai4-v100/setup-lan.sh
+sudo install -m 644 deploy/ai4-v100/49-ai4-v100-dashboard.rules /etc/polkit-1/rules.d/49-ai4-v100-dashboard.rules
 systemctl --user daemon-reload
 systemctl --user enable gpu-dashboard.service
 systemctl --user restart gpu-dashboard.service
 ```
 
-Open **https://10.0.0.44:5088** from the `10.0.0.0/24` LAN. Trust the VM's self-signed certificate (`~/.config/gpu-dashboard/tls.crt`) on the workstation before signing in. The username is `dashboard`. On the VM, read the password with `sed -n 's/^DashboardAccess__Password=//p' ~/.config/gpu-dashboard/lan.env`. To rotate the password, replace that value and restart the user service. Service controls are disabled.
+Open **https://10.0.0.44:5088** from the `10.0.0.0/24` LAN. Trust the VM's self-signed certificate (`~/.config/gpu-dashboard/tls.crt`) on the workstation before signing in. The username is `dashboard`. On the VM, read the password with `sed -n 's/^DashboardAccess__Password=//p' ~/.config/gpu-dashboard/lan.env`. To rotate the password, replace that value and restart the user service. The dashboard login can start, stop, and restart all registered workloads. The Polkit rule allows only those operations on the five registered system units for `ai`. Llama Monitor runs in the same user systemd manager as the dashboard.

@@ -1,0 +1,127 @@
+@page "/applications/{Id}"
+@inherits LivePage
+@inject WorkloadManager Manager
+
+<PageTitle>@(item?.Name ?? "Application") · VectorGPU</PageTitle>
+<a href="/applications" class="text-link">← Applications</a>
+
+@if (item is { } service)
+{
+    <div class="page-head">
+        <div>
+            <div class="eyebrow"><span class="blue-dot"></span> @service.Category</div>
+            <h1>@service.Name<span class="accent">.</span></h1>
+            <p>@service.Description</p>
+        </div>
+        <div class="head-buttons">
+            <button class="button secondary" disabled="@(!CanControl || busy || service.Running)" @onclick='() => pending = "start"'>Start</button>
+            <button class="button danger" disabled="@(!CanControl || busy || !service.Running)" @onclick='() => pending = "stop"'>Stop</button>
+        </div>
+    </div>
+
+    @if (pending is { } action)
+    {
+        <div class="confirm">
+            <span>Confirm <b>@action</b> on <b>@service.Name</b>?</span>
+            <button class="button danger" @onclick="ApplyAsync">Confirm</button>
+            <button class="button secondary" @onclick="() => pending = null">Cancel</button>
+        </div>
+    }
+    @if (notice is not null)
+    {
+        <div class="notice" role="status">@notice</div>
+    }
+
+    <div class="primary-grid gpu-grid">
+        <section class="panel padded">
+            <h2>Service status</h2>
+            <div class="info-line"><span>State</span><b>@service.State @service.SubState</b></div>
+            <div class="info-line"><span>Systemd unit</span><b class="mono">@service.Unit</b></div>
+            <div class="info-line"><span>Scope</span><b>@service.Scope</b></div>
+            <div class="info-line"><span>Main PID</span><b>@(service.Pid?.ToString() ?? "—")</b></div>
+            @if (service.Error is not null)
+            {
+                <p class="muted">@service.Error</p>
+            }
+        </section>
+        <section class="panel padded">
+            <h2>Service resources</h2>
+            <div class="info-line"><span>RAM</span><b>@(service.MemoryMb is double memory ? $"{memory:0} MiB" : "—")</b></div>
+            <div class="info-line"><span>CPU time since start</span><b>@(service.CpuTime is TimeSpan cpu ? $"{cpu.TotalSeconds:0.0} s" : "—")</b></div>
+            <div class="info-line"><span>Tasks</span><b>@(service.Tasks?.ToString() ?? "—")</b></div>
+            <p class="muted">Systemd totals for this service.</p>
+        </section>
+    </div>
+
+    <section class="panel">
+        <div class="panel-heading">
+            <div><h2>Recent logs</h2><p>Latest 50 journal lines</p></div>
+            <button class="button secondary" disabled="@loadingLogs" @onclick="LoadLogsAsync">Refresh logs</button>
+        </div>
+        <pre class="terminal" aria-label="Recent service logs">@logs</pre>
+    </section>
+}
+else
+{
+    <div class="notice">No registered application matches this address.</div>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    private WorkloadState? item;
+    private string? loadedId, pending, notice;
+    private string logs = "Loading logs…";
+    private bool busy, loadingLogs;
+    private bool CanControl => Manager.Options.DemoMode || Manager.Options.EnableServiceControls;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedId == Id) return;
+        loadedId = Id;
+        pending = notice = null;
+        busy = loadingLogs = false;
+        logs = "Loading logs…";
+        if (item?.Id != Id)
+        {
+            item = null;
+            await RefreshAsync();
+        }
+        if (item is not null && item.Id == Id)
+            await LoadLogsAsync();
+    }
+
+    protected override async Task RefreshAsync()
+    {
+        var id = Id;
+        var result = await Manager.GetAsync(id);
+        await InvokeAsync(() =>
+        {
+            if (id == Id) item = result;
+        });
+    }
+
+    private async Task LoadLogsAsync()
+    {
+        var id = Id;
+        loadingLogs = true;
+        var output = await Manager.ReadJournalAsync(id, 50);
+        if (id != Id) return;
+        logs = string.IsNullOrWhiteSpace(output) ? "No recent journal entries." : output;
+        loadingLogs = false;
+    }
+
+    private async Task ApplyAsync()
+    {
+        if (busy || pending is not { } action || item is not { } service) return;
+        pending = null;
+        busy = true;
+        notice = $"{action} in progress…";
+        var result = await Manager.ControlAsync(service.Id, action);
+        if (service.Id != Id) return;
+        notice = result.Message;
+        busy = false;
+        await RefreshAsync();
+        await LoadLogsAsync();
+    }
+}
