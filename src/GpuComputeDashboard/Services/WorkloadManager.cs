@@ -29,16 +29,17 @@ public sealed class WorkloadManager(ProcessRunner runner, IOptions<DashboardOpti
 
     private async Task<WorkloadState> GetStateAsync(WorkloadDefinition workload, CancellationToken token)
     {
-        WorkloadState State(string state, string sub = "", int? pid = null, double? memory = null, string? error = null)
+        WorkloadState State(string state, string sub = "", int? pid = null, double? memory = null, string? error = null,
+            TimeSpan? cpuTime = null, int? tasks = null)
             => new(workload.Id, workload.Name, workload.Unit, workload.Scope, workload.Category,
-                workload.Description, workload.Url, workload.Path, workload.Port, state, sub, pid, memory, error, workload.ShowInApplications);
+                workload.Description, workload.Url, workload.Path, workload.Port, state, sub, pid, memory, error, workload.ShowInApplications, cpuTime, tasks);
 
         if (options.DemoMode)
             return State(demoRunning.GetOrAdd(workload.Id, true) ? "active" : "inactive", "demo",
                 demoRunning[workload.Id] ? 1200 + Math.Abs(workload.Id.GetHashCode() % 5000) : null);
         if (!Valid(workload)) return State("error", error: "Invalid or unconfigured systemd unit.");
         var args = UnitArgs(workload, "show");
-        args.AddRange(["--property=LoadState,ActiveState,SubState,MainPID,MemoryCurrent", "--no-pager"]);
+        args.AddRange(["--property=LoadState,ActiveState,SubState,MainPID,MemoryCurrent,CPUUsageNSec,TasksCurrent", "--no-pager"]);
         var result = await runner.RunAsync("systemctl", args, token);
         if (!result.Success) return State("unavailable", error: result.Error.Trim() is { Length: > 0 } e ? e : result.Output.Trim());
         var fields = result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
@@ -50,8 +51,11 @@ public sealed class WorkloadManager(ProcessRunner runner, IOptions<DashboardOpti
         double? memory = long.TryParse(value("MemoryCurrent"), NumberStyles.Integer,
             CultureInfo.InvariantCulture, out var bytes) && bytes >= 0 && bytes < long.MaxValue
                 ? bytes / 1048576d : null;
+        TimeSpan? cpuTime = long.TryParse(value("CPUUsageNSec"), out var nanoseconds) && nanoseconds >= 0
+            ? TimeSpan.FromTicks(nanoseconds / 100) : null;
+        int? tasks = int.TryParse(value("TasksCurrent"), out var count) && count >= 0 ? count : null;
         return State(value("ActiveState") is { Length: > 0 } active ? active : "unknown",
-            value("SubState"), pid, memory);
+            value("SubState"), pid, memory, cpuTime: cpuTime, tasks: tasks);
     }
 
     public async Task<OperationResult> ControlAsync(string id, string action, CancellationToken token = default)
@@ -67,9 +71,10 @@ public sealed class WorkloadManager(ProcessRunner runner, IOptions<DashboardOpti
         if (!options.EnableServiceControls)
             return new(false, "Service controls are disabled. Set Dashboard:EnableServiceControls to true after configuring authorization.");
         var args = UnitArgs(workload, action);
-        var result = await runner.RunAsync("systemctl", args, token, 20);
+        args.Add("--no-ask-password");
+        var result = await runner.RunAsync("systemctl", args, token, 120);
         return new(result.Success, result.Success
-            ? workload.Name + ": " + action + " requested."
+            ? workload.Name + ": " + action + " completed."
             : "systemctl: " + (string.IsNullOrWhiteSpace(result.Error) ? result.Output.Trim() : result.Error.Trim()));
     }
 
