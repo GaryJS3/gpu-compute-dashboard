@@ -19,6 +19,7 @@ public sealed class WorkloadDefinition
     public string Scope { get; set; } = "system";
     public string Category { get; set; } = "Service";
     public string Description { get; set; } = "";
+    public bool ShowInApplications { get; set; } = true;
     public string? Url { get; set; }
     public string? Path { get; set; }
     public int? Port { get; set; }
