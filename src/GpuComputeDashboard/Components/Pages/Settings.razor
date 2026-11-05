@@ -14,12 +14,12 @@
     </section>
     <section class="panel"><div class="panel-heading"><div><h2>Safety &amp; deployment</h2><p>Read before exposing this UI on a network</p></div></div>
         <div class="settings-list"><p>By default Kestrel binds to <code>127.0.0.1:5088</code>, and real service controls are disabled.</p>
-        <p>There is no built-in login in this first release. Do not expose the dashboard to an untrusted network, including via a public reverse proxy, without adding authentication and authorization.</p>
-        <p>Use SSH port forwarding for remote access during development. A production proxy must enforce identity and access policy.</p>
+        <p>LAN deployments require HTTPS and a dashboard login.</p>
+        <p>Use SSH port forwarding for remote access when the dashboard runs on localhost.</p>
         <p>To change settings, edit <code>appsettings.json</code> or an environment-specific override, and restart the dashboard service.</p></div>
     </section>
 </div>
-<div class="panel padded"><h2>Unit configuration</h2><p class="muted">The V100 units shown below are initial examples, not independently verified. Check them on the destination VM with <code>systemctl list-unit-files</code> and <code>systemctl --user list-unit-files</code>.</p>
+<div class="panel padded"><h2>Unit configuration</h2><p class="muted">Check registered units on the destination VM with <code>systemctl list-unit-files</code> and <code>systemctl --user list-unit-files</code>.</p>
 <div class="table-scroll"><table><thead><tr><th>APPLICATION</th><th>UNIT</th><th>SCOPE</th><th>PORT</th></tr></thead><tbody>
 @foreach (var w in Manager.Options.Workloads) { <tr><td>@w.Name</td><td class="mono">@w.Unit</td><td>@w.Scope</td><td>@w.Port</td></tr> }
 </tbody></table></div></div>

@@ -9,12 +9,14 @@ builder.Services.AddSingleton<WorkloadManager>();
 builder.Services.AddSingleton<TelemetryMonitor>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<TelemetryMonitor>());
 
+var access = new DashboardAccess(builder.Configuration.GetSection("DashboardAccess"));
 var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/error");
     app.UseHsts();
 }
+app.Use(access.InvokeAsync);
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();

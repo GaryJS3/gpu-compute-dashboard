@@ -2,8 +2,8 @@ namespace GpuComputeDashboard.Services;
 
 public sealed class DashboardOptions
 {
-    public string NodeName { get; set; } = "ai4-v100";
-    public string GpuLabel { get; set; } = "NVIDIA Tesla V100 32 GB";
+    public string NodeName { get; set; } = Environment.MachineName;
+    public string GpuLabel { get; set; } = "GPU telemetry";
     public string OsLabel { get; set; } = "Ubuntu Linux";
     public bool DemoMode { get; set; }
     public bool EnableServiceControls { get; set; }

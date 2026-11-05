@@ -8,12 +8,12 @@ Improve and deploy the local-per-VM .NET 10 Blazor Interactive Server dashboard.
 - `Services/WorkloadManager.cs`: explicitly registered systemd services; safe, fixed argument invocation; journal and mount checks.
 - `Components/Pages/`: Blazor pages for the Command Center UI.
 - `wwwroot/css/app.css`: reusable dark visual system and responsive layout.
-- `appsettings.json`: initial 6 V100 workloads; **five system unit names are unverified placeholders**.
+- `appsettings.json`: shared defaults. Node branches supply their inventory in `appsettings.Production.json`.
 - `.github/workflows/build.yml`: CI build gate.
 
 ## Do first on the actual VM
 1. Build/run and fix any SDK, Razor, or CSS issues.
-2. Capture real `systemctl cat` output for the five system services and the user service. Update unit names, scopes and paths; preserve the existing units.
+2. Verify system and user units on the destination VM. Register their names, scopes and paths in the node configuration.
 3. Check nvidia-smi response and metrics, journal access, and NFS mount detection under the `ai` account.
 4. Test read-only controls first. Add authorization before enabling mutations.
 5. Verify responsive behavior at desktop and mobile widths and clean up UI rough edges.

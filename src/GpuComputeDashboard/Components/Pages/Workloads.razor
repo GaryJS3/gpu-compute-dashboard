@@ -27,7 +27,7 @@
                 <td class="align-right"><div class="action-group"><button class="mini-button" disabled="@(!CanControl || item.Running)" @onclick='() => Ask(item, "start")'>Start</button><button class="mini-button" disabled="@(!CanControl || !item.Running)" @onclick='() => Ask(item, "restart")'>Restart</button><button class="mini-button danger-text" disabled="@(!CanControl || !item.Running)" @onclick='() => Ask(item, "stop")'>Stop</button></div></td></tr>
         }
     </tbody></table></div>
-    <div class="panel-foot"><span>Only units explicitly listed in appsettings.json are managed. Unit names supplied for the V100 are examples until verified on the VM.</span><span>GPU per-process attribution is not yet implemented.</span></div>
+    <div class="panel-foot"><span>The dashboard only manages explicitly configured units.</span><span>GPU per-process attribution is not yet implemented.</span></div>
 </div>
 
 @code {
