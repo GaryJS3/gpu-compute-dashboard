@@ -62,3 +62,17 @@ Copy the publish directory to `/opt/gpu-dashboard`, then adjust `deploy/gpu-dash
 ## Architecture and Codex continuation
 
 See [docs/CODEX-HANDOFF.md](docs/CODEX-HANDOFF.md) for prioritized implementation tasks and constraints.
+
+## Deploy on ai4-v100
+
+Run as `ai` from this checkout on the VM. This host already has systemd user lingering enabled.
+
+```bash
+dotnet publish src/GpuComputeDashboard/GpuComputeDashboard.csproj -c Release -o "$HOME/.local/share/gpu-dashboard"
+install -Dm644 deploy/gpu-dashboard.user.service "$HOME/.config/systemd/user/gpu-dashboard.service"
+systemctl --user daemon-reload
+systemctl --user enable gpu-dashboard.service
+systemctl --user restart gpu-dashboard.service
+```
+
+Open a tunnel from your workstation with `ssh -N -L 5088:127.0.0.1:5088 ai@10.0.0.44` and visit **http://127.0.0.1:5088**. Production loads the verified V100 workload inventory and NFS mount. Service controls are disabled.

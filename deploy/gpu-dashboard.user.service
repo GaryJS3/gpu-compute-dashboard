@@ -1,16 +1,14 @@
 [Unit]
 Description=VectorGPU local compute dashboard
-After=default.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/gpu-dashboard
-ExecStart=/usr/bin/dotnet /opt/gpu-dashboard/GpuComputeDashboard.dll
+WorkingDirectory=%h/.local/share/gpu-dashboard
+ExecStart=/usr/bin/dotnet %h/.local/share/gpu-dashboard/GpuComputeDashboard.dll
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
-ProtectSystem=strict
 PrivateTmp=true
 
 [Install]
