@@ -1,0 +1,26 @@
+@page "/journal"
+@inject WorkloadManager Manager
+
+<PageTitle>Journal · VectorGPU</PageTitle>
+<div class="page-head"><div><div class="eyebrow"><span class="blue-dot"></span> SYSTEM JOURNAL</div><h1>Service logs<span class="accent">.</span></h1><p>Latest journalctl output for a registered service. No arbitrary command execution.</p></div></div>
+<div class="panel">
+    <div class="table-toolbar">
+        <label class="field-label">Service
+            <select @bind="selectedId">@foreach (var s in Manager.Options.Workloads) { <option value="@s.Id">@s.Name (@s.Unit)</option> }</select>
+        </label>
+        <button class="button primary" @onclick="LoadLogs" disabled="@busy">@(busy ? "Loading…" : "Refresh journal")</button>
+    </div>
+    <pre class="terminal" aria-label="Selected systemd journal output">@output</pre>
+    <div class="panel-foot">Journal reads are limited to 100 lines. Access depends on the Linux account running the dashboard.</div>
+</div>
+@code {
+    private string selectedId = "", output = "Select a service and press Refresh journal.";
+    private bool busy;
+    protected override void OnInitialized() { selectedId = Manager.Options.Workloads.FirstOrDefault()?.Id ?? ""; }
+    private async Task LoadLogs()
+    {
+        busy = true;
+        try { output = await Manager.ReadJournalAsync(selectedId, 100); }
+        finally { busy = false; }
+    }
+}

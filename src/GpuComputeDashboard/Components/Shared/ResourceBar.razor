@@ -1,0 +1,5 @@
+<div class="progress-track @Tone"><div style="width:@(Math.Clamp(Percent ?? 0, 0, 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div></div>
+@code {
+    [Parameter] public double? Percent { get; set; }
+    [Parameter] public string Tone { get; set; } = "blue";
+}

@@ -1,0 +1,31 @@
+@page "/applications"
+@inherits LivePage
+@inject WorkloadManager Manager
+
+<PageTitle>Applications · VectorGPU</PageTitle>
+<div class="page-head"><div><div class="eyebrow"><span class="blue-dot"></span> APPLICATION WORKSPACE</div><h1>Applications<span class="accent">.</span></h1><p>Quick access to configured local services and their management pages.</p></div><a href="/workloads" class="button primary">Manage services ↗</a></div>
+<div class="application-grid">
+@foreach (var item in services)
+{
+    <article class="panel app-card">
+        <div class="app-card-top"><span class="app-logo">@Icon(item.Category)</span><span class="state-tag @(item.Running ? "up" : "")"><span class="status-indicator @(item.Running ? "" : "warning")"></span>@item.State</span></div>
+        <h2>@item.Name</h2><p>@item.Description</p>
+        <div class="info-line"><span>Unit</span><b class="mono">@item.Unit</b></div>
+        <div class="info-line"><span>Port</span><b>@(item.Port?.ToString() ?? "—")</b></div>
+        <div class="info-line"><span>Path</span><b class="mono">@item.Path</b></div>
+        <div class="app-card-actions">
+            @if (item.Url is { } url && Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Host is not ("127.0.0.1" or "localhost" or "::1"))
+            {
+                <a class="button primary" target="_blank" rel="noopener noreferrer" href="@url">Open app ↗</a>
+            }
+            else { <span class="top-chip">Local / no web endpoint</span> }
+            <a class="button secondary" href="/workloads">Details</a>
+        </div>
+    </article>
+}
+</div>
+@code {
+    private IReadOnlyList<WorkloadState> services = [];
+    protected override async Task RefreshAsync() => services = await Manager.GetAllAsync();
+    private static string Icon(string category) => category.Contains("3D") ? "⬡" : category.Contains("Image") ? "◉" : category.Contains("LLM") ? "◈" : "▣";
+}

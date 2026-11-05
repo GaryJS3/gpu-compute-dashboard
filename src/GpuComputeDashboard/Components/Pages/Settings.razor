@@ -1,0 +1,25 @@
+@page "/settings"
+@inject WorkloadManager Manager
+
+<PageTitle>Settings · VectorGPU</PageTitle>
+<div class="page-head"><div><div class="eyebrow"><span class="blue-dot"></span> CONFIGURATION</div><h1>Node settings<span class="accent">.</span></h1><p>Current effective settings. Configuration is file-based in this first release.</p></div></div>
+<div class="primary-grid gpu-grid">
+    <section class="panel"><div class="panel-heading"><div><h2>Runtime</h2><p>Dashboard configuration</p></div></div>
+        <div class="settings-list"><div class="info-line"><span>Node name</span><b>@Manager.Options.NodeName</b></div>
+        <div class="info-line"><span>GPU label</span><b>@Manager.Options.GpuLabel</b></div>
+        <div class="info-line"><span>Demo mode</span><b>@Manager.Options.DemoMode</b></div>
+        <div class="info-line"><span>Service controls</span><b>@Manager.Options.EnableServiceControls</b></div>
+        <div class="info-line"><span>Sample interval</span><b>@Manager.Options.PollSeconds seconds</b></div>
+        <div class="info-line"><span>Registered services</span><b>@Manager.Options.Workloads.Count</b></div></div>
+    </section>
+    <section class="panel"><div class="panel-heading"><div><h2>Safety &amp; deployment</h2><p>Read before exposing this UI on a network</p></div></div>
+        <div class="settings-list"><p>By default Kestrel binds to <code>127.0.0.1:5088</code>, and real service controls are disabled.</p>
+        <p>There is no built-in login in this first release. Do not expose the dashboard to an untrusted network, including via a public reverse proxy, without adding authentication and authorization.</p>
+        <p>Use SSH port forwarding for remote access during development. A production proxy must enforce identity and access policy.</p>
+        <p>To change settings, edit <code>appsettings.json</code> or an environment-specific override, and restart the dashboard service.</p></div>
+    </section>
+</div>
+<div class="panel padded"><h2>Unit configuration</h2><p class="muted">The V100 units shown below are initial examples, not independently verified. Check them on the destination VM with <code>systemctl list-unit-files</code> and <code>systemctl --user list-unit-files</code>.</p>
+<div class="table-scroll"><table><thead><tr><th>APPLICATION</th><th>UNIT</th><th>SCOPE</th><th>PORT</th></tr></thead><tbody>
+@foreach (var w in Manager.Options.Workloads) { <tr><td>@w.Name</td><td class="mono">@w.Unit</td><td>@w.Scope</td><td>@w.Port</td></tr> }
+</tbody></table></div></div>

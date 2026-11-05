@@ -1,0 +1,45 @@
+@inherits LayoutComponentBase
+@inject IOptions<DashboardOptions> Configuration
+
+<div class="demo-bar">
+    <span class="signal"></span>
+    @if (Configuration.Value.DemoMode)
+    {
+        <b>DEMO MODE</b><span>Sample telemetry and simulated controls; no host changes.</span>
+    }
+    else
+    {
+        <b>LOCAL NODE</b><span>Live system readings · Controls @(Configuration.Value.EnableServiceControls ? "enabled" : "disabled by configuration")</span>
+    }
+</div>
+<div class="shell">
+    <aside class="sidebar">
+        <div class="logo"><span class="brandmark">⬡</span><div><strong>VECTOR<span>GPU</span></strong><small>COMPUTE MANAGEMENT</small></div></div>
+        <div class="node-select"><span class="node-avatar">N</span><div><b>@Configuration.Value.NodeName</b><small>@Configuration.Value.GpuLabel</small></div><span class="status-indicator"></span></div>
+        <div class="nav-caption">WORKSPACE</div>
+        <nav aria-label="Main navigation">
+            <NavLink href="/" Match="NavLinkMatch.All"><span class="nav-icon">▦</span> Overview</NavLink>
+            <NavLink href="/workloads"><span class="nav-icon">▤</span> Workloads</NavLink>
+            <NavLink href="/gpu"><span class="nav-icon">◈</span> GPU Analytics</NavLink>
+            <NavLink href="/applications"><span class="nav-icon">⬡</span> Applications</NavLink>
+            <div class="nav-caption inset">SYSTEM</div>
+            <NavLink href="/journal"><span class="nav-icon">☰</span> Journal</NavLink>
+            <NavLink href="/storage"><span class="nav-icon">▥</span> Storage &amp; Mounts</NavLink>
+            <NavLink href="/settings"><span class="nav-icon">⚙</span> Settings</NavLink>
+        </nav>
+        <div class="sidebar-lower">
+            <div class="mini-health">
+                <b><span class="status-indicator"></span> Compute node</b>
+                <p>Local application · independent per VM</p>
+                <div><span>Backend</span><strong>.NET 10 / Blazor</strong></div>
+                <div><span>Mode</span><strong>@(Configuration.Value.DemoMode ? "Demonstration" : "Live / local")</strong></div>
+            </div>
+            <div class="sidebar-footer"><span class="avatar">VM</span><div><b>Node Dashboard</b><small>System administrator</small></div></div>
+        </div>
+    </aside>
+    <div class="main-area">
+        <header class="topbar"><span class="breadcrumb">Infrastructure <em>/</em> @Configuration.Value.NodeName</span><div class="right-actions"><span class="top-chip"><span class="status-indicator"></span> @Configuration.Value.NodeName</span><span class="top-chip version">.NET 10</span><NavLink href="/settings" class="icon-button" title="Settings">⚙</NavLink></div></header>
+        <main class="content">@Body</main>
+        <footer class="app-footer">VectorGPU · Per-node compute dashboard <span>System actions are restricted to configured services.</span></footer>
+    </div>
+</div>

@@ -1,0 +1,31 @@
+<div class="chart-box">
+    <div class="chart-y"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div>
+    <svg viewBox="0 0 800 250" preserveAspectRatio="none" role="img" aria-label="Recent GPU utilization and VRAM percent samples">
+        @for (var y = 0; y <= 250; y += 62)
+        {
+            <line x1="0" y1="@y" x2="800" y2="@y" class="gridline" />
+        }
+        <polyline points="@PointsFor(x => x.GpuPercent)" class="trace-blue" />
+        <polyline points="@PointsFor(x => x.VramPercent)" class="trace-purple" />
+    </svg>
+</div>
+<div class="chart-labels"><span>Oldest sample</span><span>Recent (up to 30 minutes)</span><span>Now</span></div>
+<div class="chart-legend"><span><i class="key blue"></i>GPU load</span><span><i class="key purple"></i>VRAM %</span><span class="right">Unavailable data is not interpolated</span></div>
+@code {
+    [Parameter] public IReadOnlyList<TelemetryPoint> Points { get; set; } = [];
+    private string PointsFor(Func<TelemetryPoint, double?> selector)
+    {
+        if (Points.Count == 0) return "";
+        var result = new List<string>();
+        for (var i = 0; i < Points.Count; i++)
+        {
+            var value = selector(Points[i]);
+            if (value is null) continue;
+            var x = Points.Count == 1 ? 800 : (800d * i / (Points.Count - 1));
+            var y = 250 - Math.Clamp(value.Value, 0, 100) * 2.5;
+            result.Add(x.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "," +
+                y.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        return string.Join(" ", result);
+    }
+}

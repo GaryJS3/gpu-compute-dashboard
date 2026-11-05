@@ -1,0 +1,24 @@
+[Unit]
+Description=VectorGPU per-node compute dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ai
+Group=ai
+WorkingDirectory=/opt/gpu-dashboard
+ExecStart=/usr/bin/dotnet /opt/gpu-dashboard/GpuComputeDashboard.dll
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_NOLOGO=true
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ReadWritePaths=/opt/gpu-dashboard
+# Dashboard listens on localhost by default. Use SSH tunneling or an authenticated reverse proxy.
+
+[Install]
+WantedBy=multi-user.target

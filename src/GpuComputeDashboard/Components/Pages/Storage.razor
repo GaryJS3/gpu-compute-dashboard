@@ -1,0 +1,30 @@
+@page "/storage"
+@inherits LivePage
+@inject WorkloadManager Manager
+@inject TelemetryMonitor Telemetry
+
+<PageTitle>Storage · VectorGPU</PageTitle>
+<div class="page-head"><div><div class="eyebrow"><span class="blue-dot"></span> NODE STORAGE</div><h1>Storage &amp; mounts<span class="accent">.</span></h1><p>Monitor expected external mounts and local filesystem capacity.</p></div></div>
+<div class="primary-grid gpu-grid">
+    <section class="panel"><div class="panel-heading"><div><h2>Configured mounts</h2><p>Read from /proc/mounts</p></div></div>
+        @if (mounts.Count == 0) { <p class="muted padded">No mounts configured. Add them under Dashboard:Mounts in appsettings.json.</p> }
+        @foreach (var mount in mounts)
+        {
+            <div class="mount-card"><div class="mount-title"><strong>@mount.Path</strong><span class="state-tag @(mount.Mounted ? "up" : "missing")"><span class="status-indicator @(mount.Mounted ? "" : "warning")"></span>@(mount.Mounted ? "Mounted" : "Not mounted")</span></div>
+                <div class="info-line"><span>Expected source</span><b class="mono">@mount.ExpectedSource</b></div>
+                <div class="info-line"><span>Actual source</span><b class="mono">@(mount.ActualSource ?? "Not present")</b></div>
+                <div class="info-line"><span>Filesystem</span><b>@(mount.Filesystem ?? "—")</b></div></div>
+        }
+    </section>
+    <section class="panel"><div class="panel-heading"><div><h2>Root filesystem</h2><p>VM local storage</p></div></div>
+        <div class="storage-metric"><strong>@Fmt(Telemetry.Current.Host.DiskUsedGb) GB</strong><span>used of @Fmt(Telemetry.Current.Host.DiskTotalGb) GB</span></div>
+        <ResourceBar Percent="Telemetry.Current.Host.DiskPercent" Tone="blue" />
+        <p class="muted padded">External NFS data is not included in the VM's root disk usage. Back up shared model data separately from Proxmox VM backups.</p>
+    </section>
+</div>
+<div class="notice warning-box">A mount is marked healthy only when its path and configured source match. This dashboard does not mount, unmount, or modify storage.</div>
+@code {
+    private IReadOnlyList<MountState> mounts = [];
+    protected override Task RefreshAsync() { mounts = Manager.GetMounts(); return Task.CompletedTask; }
+    private static string Fmt(double? value) => value?.ToString("0.#") ?? "—";
+}

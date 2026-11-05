@@ -1,0 +1,56 @@
+@page "/workloads"
+@inherits LivePage
+@inject WorkloadManager Manager
+
+<PageTitle>Workloads · VectorGPU</PageTitle>
+<div class="page-head"><div><div class="eyebrow"><span class="blue-dot"></span> SERVICE MANAGEMENT</div><h1>Workloads<span class="accent">.</span></h1><p>Inspect registered systemd services and control permitted units.</p></div><div class="head-buttons"><a class="button secondary" href="/settings">Configure inventory ↗</a></div></div>
+<div class="status-cards">
+    <div class="status-card"><span>REGISTERED</span><b>@items.Count</b></div><div class="status-card"><span>RUNNING</span><b class="green-text">@items.Count(x => x.Running)</b></div>
+    <div class="status-card"><span>INACTIVE / MISSING</span><b>@items.Count(x => !x.Running)</b></div>
+    <div class="status-card"><span>CONTROL MODE</span><b class="mode-label">@(Manager.Options.DemoMode ? "Simulated" : Manager.Options.EnableServiceControls ? "Enabled" : "Read-only")</b></div>
+</div>
+@if (!string.IsNullOrWhiteSpace(notice)) { <div class="notice">@notice</div> }
+@if (pending is { } operation)
+{
+    <div class="confirm"><span>Confirm <b>@operation.Action</b> on <b>@operation.Name</b>?</span><button class="button danger" @onclick="Execute">Confirm</button><button class="button secondary" @onclick="Cancel">Cancel</button></div>
+}
+<div class="panel table-panel">
+    <div class="table-toolbar"><label class="search-box">⌕ <input placeholder="Search services, units, categories…" aria-label="Filter workloads" @bind="search" @bind:event="oninput" /></label>
+        <div class="toggle-group"><button class="@(filter == "all" ? "selected" : "")" @onclick='() => SetFilter("all")'>All</button><button class="@(filter == "running" ? "selected" : "")" @onclick='() => SetFilter("running")'>Running</button><button class="@(filter == "stopped" ? "selected" : "")" @onclick='() => SetFilter("stopped")'>Inactive</button></div></div>
+    <div class="table-scroll"><table><thead><tr><th>APPLICATION</th><th>SYSTEMD UNIT</th><th>MAIN PID</th><th>RAM</th><th>STATUS</th><th class="align-right">ACTIONS</th></tr></thead><tbody>
+        @foreach (var item in Filtered)
+        {
+            <tr><td><div class="table-name"><span class="app-avatar">@Icon(item.Category)</span><div><strong>@item.Name</strong><small>@item.Category · @(item.Port?.ToString() ?? "no port")</small></div></div></td>
+                <td><span class="mono">@item.Unit</span><div class="small-muted">@item.Scope service</div></td>
+                <td class="mono">@(item.Pid?.ToString() ?? "—")</td><td>@(item.MemoryMb?.ToString("0") ?? "—") MB</td>
+                <td><span class="state-tag @(item.Running ? "up" : item.Missing ? "missing" : "")"><span class="status-indicator @(item.Running ? "" : "warning")"></span>@item.State</span>@if (!string.IsNullOrWhiteSpace(item.Error)) { <div class="small-muted" title="@item.Error">Details in service configuration</div> }</td>
+                <td class="align-right"><div class="action-group"><button class="mini-button" disabled="@(!CanControl || item.Running)" @onclick='() => Ask(item, "start")'>Start</button><button class="mini-button" disabled="@(!CanControl || !item.Running)" @onclick='() => Ask(item, "restart")'>Restart</button><button class="mini-button danger-text" disabled="@(!CanControl || !item.Running)" @onclick='() => Ask(item, "stop")'>Stop</button></div></td></tr>
+        }
+    </tbody></table></div>
+    <div class="panel-foot"><span>Only units explicitly listed in appsettings.json are managed. Unit names supplied for the V100 are examples until verified on the VM.</span><span>GPU per-process attribution is not yet implemented.</span></div>
+</div>
+
+@code {
+    private IReadOnlyList<WorkloadState> items = [];
+    private string search = "", filter = "all", notice = "";
+    private (string Id, string Name, string Action)? pending;
+    private bool CanControl => Manager.Options.DemoMode || Manager.Options.EnableServiceControls;
+    private IEnumerable<WorkloadState> Filtered => items.Where(x =>
+        (filter == "all" || (filter == "running" ? x.Running : !x.Running)) &&
+        (x.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+        x.Unit.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+        x.Category.Contains(search, StringComparison.OrdinalIgnoreCase)));
+    protected override async Task RefreshAsync() => items = await Manager.GetAllAsync();
+    private static string Icon(string category) => category.Contains("3D") ? "⬡" : category.Contains("Image") ? "◉" : category.Contains("LLM") ? "◈" : "▣";
+    private void SetFilter(string value) => filter = value;
+    private void Ask(WorkloadState item, string action) { pending = (item.Id, item.Name, action); notice = ""; }
+    private void Cancel() => pending = null;
+    private async Task Execute()
+    {
+        if (pending is not { } operation) return;
+        pending = null;
+        var result = await Manager.ControlAsync(operation.Id, operation.Action);
+        notice = (result.Success ? "✓ " : "⚠ ") + result.Message;
+        await RefreshAsync();
+    }
+}
