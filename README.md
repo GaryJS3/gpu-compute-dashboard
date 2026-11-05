@@ -1,6 +1,6 @@
 # VectorGPU — GPU Compute Dashboard
 
-Per-VM compute dashboard built with **ASP.NET Core 10 / Blazor Interactive Server**. Designed for Ubuntu GPU passthrough guests; first example targets `ai4-v100` (Tesla V100 32 GB) with six systemd workloads.
+Per-VM compute dashboard built with **ASP.NET Core 10 / Blazor Interactive Server**. Designed for Ubuntu GPU passthrough guests. The `ai4-v100` branch carries the inventory and deployment settings for the first VM.
 
 The UI takes its direction from the **Command Center 01** HTML concept: dark sidebar, GPU KPI cards, charts, workload table, application cards, journal, mounts, and settings.
 
@@ -34,27 +34,13 @@ To test real telemetry locally:
 ASPNETCORE_ENVIRONMENT=Production dotnet run --no-launch-profile
 ```
 
-Production settings enable real monitoring and **disable** service changes. The web server is bound to localhost by default. To view it from another computer:
+Production settings enable real monitoring and disable service changes. The web server binds to localhost by default. From another computer, use `ssh -L 5088:127.0.0.1:5088 USER@VM`, then open **http://127.0.0.1:5088** on your workstation.
 
-```bash
-ssh -L 5088:127.0.0.1:5088 ai@10.0.0.44
-```
+## Configure a node
 
-Then open **http://127.0.0.1:5088** on your workstation.
+Define `Dashboard:Workloads` and `Dashboard:Mounts` in `appsettings.Production.json` using the development configuration as a schema example. Verify service unit names with `systemctl list-unit-files --type=service` and `systemctl --user list-unit-files --type=service`.
 
-## Configure V100 services
-
-Edit `src/GpuComputeDashboard/appsettings.json` or use an environment-specific override. **The five system service unit names are initial guesses** based on the inventory, not verified actual names. Only `llama-monitor.service` was supplied explicitly as a user unit.
-
-Verify actual service names and correct them before using controls:
-
-```bash
-systemctl list-unit-files --type=service
-systemctl --user list-unit-files --type=service
-systemctl show comfyui.service --property=ActiveState,SubState,MainPID,MemoryCurrent
-```
-
-For Llama Monitor, prefer running the dashboard as a **user-level service** using \`deploy/gpu-dashboard.user.service\` (and \`loginctl enable-linger ai\`). This makes \`systemctl --user\` control available. The service account running the dashboard must have access to the correct **user systemd manager** for `systemctl --user` and `journalctl --user` to work. For the V100, installing/running the dashboard under user `ai` is the simplest option. The service file in `deploy/` is a starter template; review paths and sandbox restrictions on the actual machine.
+Run the dashboard as a user service under the account that owns any registered user units so that their systemd manager and journal are accessible. The service files in `deploy/` are templates. Review the account, paths, and permissions for each node.
 
 Set `Dashboard:EnableServiceControls` to `true` **only after** adding authentication/authorization or restricting access to trusted administrators. The app never runs arbitrary command text; all operations target configured, validated systemd units.
 
@@ -63,7 +49,7 @@ Set `Dashboard:EnableServiceControls` to `true` **only after** adding authentica
 - No built-in authentication/authorization in this initial prototype. **Do not expose it directly to a LAN, reverse proxy, or the Internet.** Use SSH forwarding or implement access control first.
 - Controls are disabled by default. Never run the dashboard as root to work around systemd permissions. Use narrowly scoped Polkit/sudo authorization if system units must be controlled.
 - No secret/environment file import is implemented. Avoid logging credentials.
-- Application URLs and mount references are initial V100 sample values, not real-time discovery.
+- Application URLs and mount references come from node configuration.
 
 ## Publish
 

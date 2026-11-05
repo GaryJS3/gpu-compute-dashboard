@@ -19,7 +19,7 @@
         <p>To change settings, edit <code>appsettings.json</code> or an environment-specific override, and restart the dashboard service.</p></div>
     </section>
 </div>
-<div class="panel padded"><h2>Unit configuration</h2><p class="muted">The V100 units shown below are initial examples, not independently verified. Check them on the destination VM with <code>systemctl list-unit-files</code> and <code>systemctl --user list-unit-files</code>.</p>
+<div class="panel padded"><h2>Unit configuration</h2><p class="muted">Check registered units on the destination VM with <code>systemctl list-unit-files</code> and <code>systemctl --user list-unit-files</code>.</p>
 <div class="table-scroll"><table><thead><tr><th>APPLICATION</th><th>UNIT</th><th>SCOPE</th><th>PORT</th></tr></thead><tbody>
 @foreach (var w in Manager.Options.Workloads) { <tr><td>@w.Name</td><td class="mono">@w.Unit</td><td>@w.Scope</td><td>@w.Port</td></tr> }
 </tbody></table></div></div>
