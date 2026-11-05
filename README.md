@@ -15,7 +15,7 @@ The UI takes its direction from the **Command Center 01** HTML concept: dark sid
 - Per-unit journal output, registered NFS mount validation, application launch links.
 - Development demonstration mode with sample V100 values and simulated controls.
 
-**Not implemented:** automatic service discovery/adoption, Docker management, GPU per-process VRAM attribution, persisted metrics, model management, configuration editing, centralized orchestration, built-in authentication or backup/migration automation. These are follow-on tasks.
+**Not implemented:** automatic service discovery/adoption, Docker management, GPU per-process VRAM attribution, persisted metrics, model management, configuration editing, centralized orchestration, per-user accounts or backup/migration automation. These are follow-on tasks.
 
 ## Run
 
@@ -42,11 +42,11 @@ Define `Dashboard:Workloads` and `Dashboard:Mounts` in `appsettings.Production.j
 
 Run the dashboard as a user service under the account that owns any registered user units so that their systemd manager and journal are accessible. The service files in `deploy/` are templates. Review the account, paths, and permissions for each node.
 
-Set `Dashboard:EnableServiceControls` to `true` **only after** adding authentication/authorization or restricting access to trusted administrators. The app never runs arbitrary command text; all operations target configured, validated systemd units.
+Keep `Dashboard:EnableServiceControls` off for shared read-only deployments. Enable it only where every person with access is authorized to operate the configured units. The app never runs arbitrary command text; all operations target configured, validated systemd units.
 
-### IMPORTANT security limitations
+### Network access
 
-- No built-in authentication/authorization in this initial prototype. **Do not expose it directly to a LAN, reverse proxy, or the Internet.** Use SSH forwarding or implement access control first.
+- The default listener is loopback-only. To serve a trusted LAN, configure an HTTPS Kestrel endpoint with a certificate trusted by the clients. Set `DashboardAccess:Enabled` to `true` and supply `DashboardAccess:Username` and `DashboardAccess:Password` through private deployment settings. Set `DashboardAccess:AllowedNetwork` to the LAN CIDR to restrict clients by source address. This single login grants access to the entire dashboard.
 - Controls are disabled by default. Never run the dashboard as root to work around systemd permissions. Use narrowly scoped Polkit/sudo authorization if system units must be controlled.
 - No secret/environment file import is implemented. Avoid logging credentials.
 - Application URLs and mount references come from node configuration.
@@ -65,14 +65,15 @@ See [docs/CODEX-HANDOFF.md](docs/CODEX-HANDOFF.md) for prioritized implementatio
 
 ## Deploy on ai4-v100
 
-Run as `ai` from this checkout on the VM. This host already has systemd user lingering enabled.
+Run as `ai` from this checkout on the VM. This host already has systemd user lingering enabled. The setup script provisions a TLS certificate and generates a dashboard password on first run.
 
 ```bash
 dotnet publish src/GpuComputeDashboard/GpuComputeDashboard.csproj -c Release -o "$HOME/.local/share/gpu-dashboard"
 install -Dm644 deploy/gpu-dashboard.user.service "$HOME/.config/systemd/user/gpu-dashboard.service"
+bash deploy/ai4-v100/setup-lan.sh
 systemctl --user daemon-reload
 systemctl --user enable gpu-dashboard.service
 systemctl --user restart gpu-dashboard.service
 ```
 
-Open a tunnel from your workstation with `ssh -N -L 5088:127.0.0.1:5088 ai@10.0.0.44` and visit **http://127.0.0.1:5088**. Production loads the verified V100 workload inventory and NFS mount. Service controls are disabled.
+Open **https://10.0.0.44:5088** from the `10.0.0.0/24` LAN. Trust the VM's self-signed certificate (`~/.config/gpu-dashboard/tls.crt`) on the workstation before signing in. The username is `dashboard`. On the VM, read the password with `sed -n 's/^DashboardAccess__Password=//p' ~/.config/gpu-dashboard/lan.env`. To rotate the password, replace that value and restart the user service. Service controls are disabled.
