@@ -7,12 +7,23 @@ namespace GpuComputeDashboard.Services;
 
 internal sealed class DashboardAccess
 {
+    private readonly bool allowUnauthenticatedLan;
     private readonly byte[]? credentialHash;
     private readonly System.Net.IPNetwork? allowedNetwork;
 
     public DashboardAccess(IConfigurationSection settings)
     {
-        if (!settings.GetValue<bool>("Enabled"))
+        var authenticationEnabled = settings.GetValue<bool>("Enabled");
+        allowUnauthenticatedLan = settings.GetValue<bool>("AllowUnauthenticatedLan");
+        if (authenticationEnabled || allowUnauthenticatedLan)
+        {
+            if (settings["AllowedNetwork"] is { } network)
+                allowedNetwork = System.Net.IPNetwork.Parse(network);
+            if (allowUnauthenticatedLan && allowedNetwork is not { PrefixLength: > 0 })
+                throw new InvalidOperationException("Unauthenticated LAN access requires a restricted AllowedNetwork CIDR.");
+        }
+
+        if (!authenticationEnabled)
             return;
 
         var username = settings["Username"];
@@ -21,8 +32,6 @@ internal sealed class DashboardAccess
             throw new InvalidOperationException("Dashboard access requires a username and password.");
 
         credentialHash = SHA256.HashData(Encoding.UTF8.GetBytes(username + ":" + password));
-        if (settings["AllowedNetwork"] is { } network)
-            allowedNetwork = System.Net.IPNetwork.Parse(network);
     }
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
@@ -31,7 +40,7 @@ internal sealed class DashboardAccess
         if (remote?.IsIPv4MappedToIPv6 == true)
             remote = remote.MapToIPv4();
 
-        if (credentialHash is null)
+        if (credentialHash is null && !allowUnauthenticatedLan)
         {
             if (remote is not null && IPAddress.IsLoopback(remote))
                 await next(context);
@@ -56,7 +65,7 @@ internal sealed class DashboardAccess
             return;
         }
 
-        if (!MatchesCredentials(context.Request.Headers.Authorization))
+        if (credentialHash is not null && !MatchesCredentials(context.Request.Headers.Authorization))
         {
             context.Response.Headers.WWWAuthenticate = "Basic realm=\"VectorGPU\", charset=\"UTF-8\"";
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;

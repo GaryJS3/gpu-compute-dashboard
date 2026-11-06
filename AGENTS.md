@@ -7,7 +7,7 @@ Read README.md and docs/CODEX-HANDOFF.md first. Preserve the dark dashboard visu
 Safety:
 - Do not grant arbitrary shell execution, allow command arguments from the browser, or run the web app as root.
 - The only mutating service operations are start/stop/restart against exact allowlisted systemd units. Real controls are off by default.
-- Keep Kestrel loopback-only by default. LAN deployments require HTTPS and dashboard authentication. Keep credentials outside the repository.
+- Keep Kestrel loopback-only by default. LAN deployments require HTTPS and default to dashboard authentication. Only enable unauthenticated LAN access for an explicitly authorized, restricted subnet. Keep credentials outside the repository.
 - Do not overwrite existing Python environments, uncommitted project files, or systemd units.
 - Do not pretend to attribute GPU memory to a workload without verifying process/cgroup ownership.
 - Sample/demo data must remain conspicuously labeled.
