@@ -25,7 +25,40 @@
         @if (!string.IsNullOrWhiteSpace(gpu?.Error)) { <p class="small-muted">@gpu.Error</p> }
     </section>
 </div>
-<div class="panel padded"><h2>GPU process allocation</h2><p class="muted">Per-process VRAM attribution is not implemented yet. NVIDIA and AMD report aggregate GPU statistics; don't use these readings to assume how much VRAM an individual systemd service owns.</p></div>
+<section class="panel">
+    <div class="panel-heading"><div><h2>GPU compute processes</h2><p>VRAM reported by NVIDIA for this GPU</p></div></div>
+    @if (gpu?.ComputeProcesses is not { } processes)
+    {
+        <div class="panel-foot">Process readings are unavailable.</div>
+    }
+    else if (processes.Count == 0)
+    {
+        <div class="panel-foot">The driver reported no active compute processes.</div>
+    }
+    else
+    {
+        <div class="table-scroll"><table>
+            <thead><tr><th>WORKLOAD</th><th>PROCESS</th><th>PID</th><th>VRAM</th></tr></thead>
+            <tbody>
+            @foreach (var process in processes.OrderByDescending(process => process.MemoryMiB))
+            {
+                var owner = workloads.Where(workload => workload.Owns(process))
+                    .MaxBy(workload => workload.ControlGroup?.Length);
+                <tr>
+                    <td>@(owner?.Name ?? "Unattributed")</td>
+                    <td class="mono">@process.Name</td><td>@process.Pid</td>
+                    <td>@(process.MemoryMiB is long mib ? $"{mib:N0} MiB" : "—")</td>
+                </tr>
+            }
+            </tbody>
+        </table></div>
+        <div class="panel-foot">Compute processes only. Graphics and driver allocations can contribute to the GPU total.</div>
+    }
+</section>
 @code {
+    private IReadOnlyList<WorkloadState> workloads = [];
+    protected override async Task RefreshAsync() =>
+        workloads = Telemetry.Current.Gpu?.ComputeProcesses is { Count: > 0 } ? await Manager.GetAllAsync() : [];
+
     private static string Fmt(double? n, string suffix = "") => n is null ? "—" : n.Value.ToString("0.#") + suffix;
 }

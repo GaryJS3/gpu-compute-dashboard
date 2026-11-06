@@ -30,16 +30,16 @@ public sealed class WorkloadManager(ProcessRunner runner, IOptions<DashboardOpti
     private async Task<WorkloadState> GetStateAsync(WorkloadDefinition workload, CancellationToken token)
     {
         WorkloadState State(string state, string sub = "", int? pid = null, double? memory = null, string? error = null,
-            TimeSpan? cpuTime = null, int? tasks = null)
+            TimeSpan? cpuTime = null, int? tasks = null, string? controlGroup = null)
             => new(workload.Id, workload.Name, workload.Unit, workload.Scope, workload.Category,
-                workload.Description, workload.Url, workload.Path, workload.Port, state, sub, pid, memory, error, workload.ShowInApplications, cpuTime, tasks);
+                workload.Description, workload.Url, workload.Path, workload.Port, state, sub, pid, memory, error, workload.ShowInApplications, cpuTime, tasks, controlGroup);
 
         if (options.DemoMode)
             return State(demoRunning.GetOrAdd(workload.Id, true) ? "active" : "inactive", "demo",
                 demoRunning[workload.Id] ? 1200 + Math.Abs(workload.Id.GetHashCode() % 5000) : null);
         if (!Valid(workload)) return State("error", error: "Invalid or unconfigured systemd unit.");
         var args = UnitArgs(workload, "show");
-        args.AddRange(["--property=LoadState,ActiveState,SubState,MainPID,MemoryCurrent,CPUUsageNSec,TasksCurrent", "--no-pager"]);
+        args.AddRange(["--property=LoadState,ActiveState,SubState,MainPID,MemoryCurrent,CPUUsageNSec,TasksCurrent,ControlGroup", "--no-pager"]);
         var result = await runner.RunAsync("systemctl", args, token);
         if (!result.Success) return State("unavailable", error: result.Error.Trim() is { Length: > 0 } e ? e : result.Output.Trim());
         var fields = result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
@@ -55,7 +55,7 @@ public sealed class WorkloadManager(ProcessRunner runner, IOptions<DashboardOpti
             ? TimeSpan.FromTicks(nanoseconds / 100) : null;
         int? tasks = int.TryParse(value("TasksCurrent"), out var count) && count >= 0 ? count : null;
         return State(value("ActiveState") is { Length: > 0 } active ? active : "unknown",
-            value("SubState"), pid, memory, cpuTime: cpuTime, tasks: tasks);
+            value("SubState"), pid, memory, cpuTime: cpuTime, tasks: tasks, controlGroup: value("ControlGroup"));
     }
 
     public async Task<OperationResult> ControlAsync(string id, string action, CancellationToken token = default)

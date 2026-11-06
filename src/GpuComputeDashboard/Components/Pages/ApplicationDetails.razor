@@ -1,6 +1,7 @@
 @page "/applications/{Id}"
 @inherits LivePage
 @inject WorkloadManager Manager
+@inject TelemetryMonitor Telemetry
 
 <PageTitle>@(item?.Name ?? "Application") · VectorGPU</PageTitle>
 <a href="/applications" class="text-link">← Applications</a>
@@ -49,7 +50,8 @@
             <div class="info-line"><span>RAM</span><b>@(service.MemoryMb is double memory ? $"{memory:0} MiB" : "—")</b></div>
             <div class="info-line"><span>CPU time since start</span><b>@(service.CpuTime is TimeSpan cpu ? $"{cpu.TotalSeconds:0.0} s" : "—")</b></div>
             <div class="info-line"><span>Tasks</span><b>@(service.Tasks?.ToString() ?? "—")</b></div>
-            <p class="muted">Systemd totals for this service.</p>
+            <div class="info-line"><span>Compute VRAM</span><b>@(service.ComputeVramMiB(Telemetry.Current.Gpu?.ComputeProcesses) is long mib ? $"{mib:N0} MiB" : "—")</b></div>
+            <p class="muted">Compute VRAM covers NVIDIA processes matched to this service. A dash means no attributable reading.</p>
         </section>
     </div>
 

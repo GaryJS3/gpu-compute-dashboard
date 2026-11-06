@@ -109,16 +109,55 @@ public sealed class TelemetryMonitor(ProcessRunner runner, IOptions<DashboardOpt
     private async Task<GpuSnapshot?> QueryNvidiaAsync(CancellationToken token)
     {
         var result = await runner.RunAsync("nvidia-smi", [
-            "--query-gpu=name,driver_version,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw,clocks.current.graphics,clocks.current.memory",
+            "--query-gpu=name,driver_version,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw,clocks.current.graphics,clocks.current.memory,uuid",
             "--format=csv,noheader,nounits"], token, 4);
         if (!result.Success) return null;
         var line = result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         if (line is null) return null;
         var fields = line.Split(',').Select(x => x.Trim()).ToArray();
-        if (fields.Length < 9) return null;
+        if (fields.Length < 10) return null;
         return new(fields[0], "NVIDIA", fields[1], Number(fields[2]),
             Number(fields[3]) / 1024d, Number(fields[4]) / 1024d, Number(fields[5]),
-            Number(fields[6]), Number(fields[7]), Number(fields[8]), "nvidia-smi");
+            Number(fields[6]), Number(fields[7]), Number(fields[8]), "nvidia-smi",
+            ComputeProcesses: await QueryNvidiaProcessesAsync(fields[9], token));
+    }
+
+    private async Task<IReadOnlyList<GpuProcess>?> QueryNvidiaProcessesAsync(string gpuUuid, CancellationToken token)
+    {
+        var result = await runner.RunAsync("nvidia-smi", [
+            "--id=" + gpuUuid, "--query-compute-apps=pid,process_name,used_gpu_memory",
+            "--format=csv,noheader,nounits"], token, 4);
+        if (!result.Success) return null;
+
+        var processes = new List<GpuProcess>();
+        foreach (var line in result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var firstComma = line.IndexOf(',');
+            var lastComma = line.LastIndexOf(',');
+            if (firstComma < 0 || firstComma == lastComma ||
+                !int.TryParse(line.AsSpan(0, firstComma), NumberStyles.Integer, CultureInfo.InvariantCulture, out var pid) ||
+                pid <= 0)
+                continue;
+
+            var name = line[(firstComma + 1)..lastComma].Trim();
+            long? memory = long.TryParse(line.AsSpan(lastComma + 1), NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out var usedMiB) && usedMiB >= 0 ? usedMiB : null;
+            processes.Add(new(pid, name, memory, ReadProcessControlGroup(pid)));
+        }
+        return processes;
+    }
+
+    private static string? ReadProcessControlGroup(int pid)
+    {
+        try
+        {
+            // Use only the unified hierarchy. The process may exit before this read.
+            var entry = File.ReadLines($"/proc/{pid}/cgroup")
+                .FirstOrDefault(line => line.StartsWith("0::/", StringComparison.Ordinal));
+            return entry?[3..];
+        }
+        catch (IOException) { return null; }
+        catch (UnauthorizedAccessException) { return null; }
     }
 
     // Legacy ROCm SMI is used on MI50 installations; output fields vary across driver versions.
