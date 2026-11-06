@@ -1,16 +1,19 @@
 <div class="chart-box">
     <div class="chart-y"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div>
     <svg viewBox="0 0 800 250" preserveAspectRatio="none" role="img" aria-label="Recent GPU utilization and VRAM percent samples">
-        @for (var y = 0; y <= 250; y += 62)
+        @for (var y = 0d; y <= 250; y += 62.5)
         {
-            <line x1="0" y1="@y" x2="800" y2="@y" class="gridline" />
+            <line x1="0" y1="@y.ToString(System.Globalization.CultureInfo.InvariantCulture)" x2="800" y2="@y.ToString(System.Globalization.CultureInfo.InvariantCulture)" class="gridline" />
         }
         <polyline points="@PointsFor(x => x.GpuPercent)" class="trace-blue" />
         <polyline points="@PointsFor(x => x.VramPercent)" class="trace-purple" />
     </svg>
 </div>
-<div class="chart-labels"><span>Oldest sample</span><span>Recent (up to 30 minutes)</span><span>Now</span></div>
-<div class="chart-legend"><span><i class="key blue"></i>GPU load</span><span><i class="key purple"></i>VRAM %</span><span class="right">Only samples reported by the driver are plotted</span></div>
+<div class="chart-legend">
+    <span><i class="key blue"></i>GPU load</span>
+    <span><i class="key purple"></i>VRAM</span>
+    <span class="right">@Points.Count samples</span>
+</div>
 @code {
     [Parameter] public IReadOnlyList<TelemetryPoint> Points { get; set; } = [];
     private string PointsFor(Func<TelemetryPoint, double?> selector)

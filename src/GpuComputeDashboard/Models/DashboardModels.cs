@@ -29,6 +29,11 @@ public sealed record WorkloadState(
     string SubState, int? Pid, double? MemoryMb, string? Error = null, bool ShowInApplications = true,
     TimeSpan? CpuTime = null, int? Tasks = null, string? ControlGroup = null)
 {
+    public string DetailsPath => "/applications/" + Uri.EscapeDataString(Id);
+
+    public string? LaunchUrl => Uri.TryCreate(Url, UriKind.Absolute, out var uri) &&
+        uri.Scheme is "http" or "https" && !uri.IsLoopback ? uri.AbsoluteUri : null;
+
     public bool Running => State == "active";
     public bool Missing => State == "not-found";
 

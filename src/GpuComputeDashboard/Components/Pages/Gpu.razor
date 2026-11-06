@@ -5,17 +5,17 @@
 
 <PageTitle>GPU Analytics · VectorGPU</PageTitle>
 @{ var gpu = Telemetry.Current.Gpu; }
-<div class="page-head"><div><div class="eyebrow"><span class="blue-dot"></span> GPU ANALYTICS</div><h1>Graphics processor<span class="accent">.</span></h1><p>Direct driver readings from the guest OS. Unreported values remain unavailable.</p></div><div class="head-buttons"><span class="top-chip">@(gpu?.Backend ?? "No telemetry backend")</span></div></div>
+<div class="page-head"><div><h1>GPU</h1><p>@(gpu?.Name ?? Manager.Options.GpuLabel)</p></div></div>
 @if (gpu is null) { <div class="notice warning-box">No supported GPU has been detected. Check driver installation and whether nvidia-smi or rocm-smi is accessible to the dashboard service account.</div> }
 <div class="metric-grid">
     <article class="metric-card blue"><div class="metric-heading">GPU UTILIZATION</div><div class="metric-value">@Fmt(gpu?.Utilization, "%")</div><ResourceBar Percent="gpu?.Utilization" /></article>
-    <article class="metric-card purple"><div class="metric-heading">VRAM USED</div><div class="metric-value">@Fmt(gpu?.MemoryUsedGb)<small> / @Fmt(gpu?.MemoryTotalGb, " GB")</small></div><ResourceBar Percent="gpu?.MemoryPercent" Tone="purple" /></article>
-    <article class="metric-card orange"><div class="metric-heading">TEMPERATURE</div><div class="metric-value">@Fmt(gpu?.TemperatureC, "°C")</div><div class="metric-note">GPU sensor</div></article>
-    <article class="metric-card teal"><div class="metric-heading">POWER</div><div class="metric-value">@Fmt(gpu?.PowerWatts, " W")</div><div class="metric-note">GPU board power</div></article>
+    <article class="metric-card purple"><div class="metric-heading">VRAM USED</div><div class="metric-value">@Fmt(gpu?.MemoryUsedGb)<small> / @Fmt(gpu?.MemoryTotalGb, " GiB")</small></div><ResourceBar Percent="gpu?.MemoryPercent" Tone="purple" /></article>
+    <article class="metric-card orange"><div class="metric-heading">TEMPERATURE</div><div class="metric-value">@Fmt(gpu?.TemperatureC, "°C")</div></article>
+    <article class="metric-card teal"><div class="metric-heading">POWER</div><div class="metric-value">@Fmt(gpu?.PowerWatts, " W")</div></article>
 </div>
 <div class="primary-grid gpu-grid">
-    <section class="panel"><div class="panel-heading"><div><h2>GPU utilization history</h2><p>Rolling in-memory telemetry · up to 360 samples</p></div></div><GpuChart Points="Telemetry.History" /></section>
-    <section class="panel"><div class="panel-heading"><div><h2>Hardware information</h2><p>GPU detection and clock state</p></div></div>
+    <section class="panel"><div class="panel-heading"><div><h2>GPU utilization history</h2></div></div><GpuChart Points="Telemetry.History" /></section>
+    <section class="panel"><div class="panel-heading"><div><h2>Hardware information</h2></div></div>
         <div class="info-line"><span>Device</span><b>@(gpu?.Name ?? Manager.Options.GpuLabel)</b></div>
         <div class="info-line"><span>Vendor</span><b>@(gpu?.Vendor ?? "—")</b></div>
         <div class="info-line"><span>Driver</span><b>@(gpu?.Driver ?? "—")</b></div>
