@@ -1,11 +1,11 @@
 @inject WorkloadManager Manager
 
-<section class="panel">
+<section class="panel service-journal">
     <div class="panel-heading">
-        <div><h3>Recent logs</h3><p>Latest 50 journal lines</p></div>
+        <div><h2>Recent logs</h2><p>Latest 50 journal lines</p></div>
         <button class="button secondary" disabled="@loading" @onclick="RefreshAsync">Refresh logs</button>
     </div>
-    <pre class="terminal" aria-label="@LogLabel">@logs</pre>
+    <pre class="terminal" tabindex="0" aria-label="@LogLabel">@logs</pre>
 </section>
 
 @code {

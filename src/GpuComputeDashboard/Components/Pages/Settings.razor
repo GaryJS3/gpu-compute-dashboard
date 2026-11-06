@@ -1,8 +1,9 @@
 @page "/settings"
 @inject WorkloadManager Manager
+@inject IConfiguration Configuration
 
 <PageTitle>Settings · VectorGPU</PageTitle>
-<div class="page-head"><div><div class="eyebrow"><span class="blue-dot"></span> CONFIGURATION</div><h1>Node settings<span class="accent">.</span></h1><p>Current effective settings. Configuration is file-based in this first release.</p></div></div>
+<div class="page-head"><div><h1>Settings</h1><p>Restart the dashboard after changing its configuration files.</p></div></div>
 <div class="primary-grid gpu-grid">
     <section class="panel"><div class="panel-heading"><div><h2>Runtime</h2><p>Dashboard configuration</p></div></div>
         <div class="settings-list"><div class="info-line"><span>Node name</span><b>@Manager.Options.NodeName</b></div>
@@ -12,14 +13,21 @@
         <div class="info-line"><span>Sample interval</span><b>@Manager.Options.PollSeconds seconds</b></div>
         <div class="info-line"><span>Registered services</span><b>@Manager.Options.Workloads.Count</b></div></div>
     </section>
-    <section class="panel"><div class="panel-heading"><div><h2>Safety &amp; deployment</h2><p>Read before exposing this UI on a network</p></div></div>
-        <div class="settings-list"><p>By default Kestrel binds to <code>127.0.0.1:5088</code>, and real service controls are disabled.</p>
-        <p>LAN deployments require HTTPS. Access depends on the node’s authentication and network settings.</p>
-        <p>Use SSH port forwarding for remote access when the dashboard runs on localhost.</p>
-        <p>To change settings, edit <code>appsettings.json</code> or an environment-specific override, and restart the dashboard service.</p></div>
+    <section class="panel"><div class="panel-heading"><h2>Access</h2></div>
+        <div class="info-line"><span>Dashboard access</span><b>@AccessMode</b></div>
+        @if (AccessMode != "Local only" && Configuration["DashboardAccess:AllowedNetwork"] is { } network)
+        {
+            <div class="info-line"><span>Allowed subnet</span><b class="mono">@network</b></div>
+        }
     </section>
 </div>
-<div class="panel padded"><h2>Unit configuration</h2><p class="muted">Check registered units on the destination VM with <code>systemctl list-unit-files</code> and <code>systemctl --user list-unit-files</code>.</p>
+<div class="panel"><div class="panel-heading"><h2>Registered units</h2></div>
 <div class="table-scroll"><table><thead><tr><th>APPLICATION</th><th>UNIT</th><th>SCOPE</th><th>PORT</th></tr></thead><tbody>
 @foreach (var w in Manager.Options.Workloads) { <tr><td>@w.Name</td><td class="mono">@w.Unit</td><td>@w.Scope</td><td>@w.Port</td></tr> }
 </tbody></table></div></div>
+
+@code {
+    private string AccessMode => Configuration.GetValue<bool>("DashboardAccess:Enabled") ? "HTTPS with login"
+        : Configuration.GetValue<bool>("DashboardAccess:AllowUnauthenticatedLan") ? "HTTPS without login"
+        : "Local only";
+}

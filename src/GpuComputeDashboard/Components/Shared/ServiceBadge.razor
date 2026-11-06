@@ -1,0 +1,8 @@
+<span class="state-tag @(Service.Running ? "up" : Service.Missing ? "missing" : "")">
+    <span class="status-indicator @(Service.Running ? "" : "warning")" aria-hidden="true"></span>
+    @(Service.Running ? "Running" : Service.State == "inactive" ? "Stopped" : Service.State)
+</span>
+
+@code {
+    [Parameter, EditorRequired] public WorkloadState Service { get; set; } = default!;
+}

@@ -3,30 +3,32 @@
 @inject WorkloadManager Manager
 
 <PageTitle>Applications · VectorGPU</PageTitle>
-<div class="page-head"><div><div class="eyebrow"><span class="blue-dot"></span> APPLICATION WORKSPACE</div><h1>Applications<span class="accent">.</span></h1><p>Launch configured applications and check their service status.</p></div><a href="/workloads" class="button primary">Manage services ↗</a></div>
-<div class="application-grid">
-@foreach (var item in services.Where(item => item.ShowInApplications))
+<div class="page-head"><h1>Applications</h1></div>
+@if (!services.Any(item => item.ShowInApplications))
 {
-    <article class="panel app-card">
-        <div class="app-card-top"><span class="app-logo">@Icon(item.Category)</span><span class="state-tag @(item.Running ? "up" : "")"><span class="status-indicator @(item.Running ? "" : "warning")"></span>@item.State</span></div>
-        <h2><a href="@DetailsUrl(item)">@item.Name</a></h2><p>@item.Description</p>
-        <div class="info-line"><span>Unit</span><b class="mono">@item.Unit</b></div>
-        <div class="info-line"><span>Port</span><b>@(item.Port?.ToString() ?? "—")</b></div>
-        <div class="info-line"><span>Path</span><b class="mono">@item.Path</b></div>
-        <div class="app-card-actions">
-            @if (item.Url is { } url && Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Host is not ("127.0.0.1" or "localhost" or "::1"))
-            {
-                <a class="button primary" target="_blank" rel="noopener noreferrer" href="@url">Open app ↗</a>
-            }
-            else { <span class="top-chip">Local / no web endpoint</span> }
-            <a class="button secondary" href="@DetailsUrl(item)">Details</a>
-        </div>
-    </article>
+    <p class="muted">No applications registered.</p>
 }
+<div class="application-grid">
+    @foreach (var item in services.Where(item => item.ShowInApplications))
+    {
+        <article class="panel app-card" @key="item.Id">
+            <div class="app-card-top">
+                <h2><a href="@item.DetailsPath">@item.Name</a></h2>
+                <ServiceBadge Service="item" />
+            </div>
+            <p>@item.Description</p>
+            <div class="app-card-actions">
+                <a class="button secondary" href="@item.DetailsPath" aria-label="@($"Details for {item.Name}")">Details</a>
+                @if (item.LaunchUrl is { } url)
+                {
+                    <a class="button primary" target="_blank" rel="noopener noreferrer" href="@url" aria-label="@($"Open {item.Name}")">Open app ↗</a>
+                }
+            </div>
+        </article>
+    }
 </div>
+
 @code {
     private IReadOnlyList<WorkloadState> services = [];
     protected override async Task RefreshAsync() => services = await Manager.GetAllAsync();
-    private static string DetailsUrl(WorkloadState item) => "/applications/" + Uri.EscapeDataString(item.Id);
-    private static string Icon(string category) => category.Contains("3D") ? "⬡" : category.Contains("Image") ? "◉" : category.Contains("LLM") ? "◈" : "▣";
 }

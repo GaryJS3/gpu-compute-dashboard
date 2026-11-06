@@ -4,19 +4,32 @@
 @inject TelemetryMonitor Telemetry
 
 <PageTitle>@(item?.Name ?? "Application") · VectorGPU</PageTitle>
-<a href="/applications" class="text-link">← Applications</a>
+<a href="@(item?.ShowInApplications == false ? "/workloads" : "/applications")" class="text-link back-link">← @(item?.ShowInApplications == false ? "Workloads" : "Applications")</a>
 
 @if (item is { } service)
 {
     <div class="page-head">
         <div>
-            <div class="eyebrow"><span class="blue-dot"></span> @service.Category</div>
-            <h1>@service.Name<span class="accent">.</span></h1>
+            <h1>@service.Name</h1>
             <p>@service.Description</p>
         </div>
         <div class="head-buttons">
-            <button class="button secondary" disabled="@(!CanControl || busy || service.Running)" @onclick='() => pending = "start"'>Start</button>
-            <button class="button danger" disabled="@(!CanControl || busy || !service.Running)" @onclick='() => pending = "stop"'>Stop</button>
+            @if (service.LaunchUrl is { } url)
+            {
+                <a class="button primary" href="@url" target="_blank" rel="noopener noreferrer">Open app ↗</a>
+            }
+            @if (CanControl)
+            {
+                var actionDisabled = busy || pending is not null || service.Error is not null;
+                @if (service.Running)
+                {
+                    <button class="button danger" disabled="@actionDisabled" @onclick='() => pending = "stop"'>Stop service</button>
+                }
+                else
+                {
+                    <button class="button secondary" disabled="@actionDisabled" @onclick='() => pending = "start"'>Start service</button>
+                }
+            }
         </div>
     </div>
 
@@ -36,10 +49,18 @@
     <div class="primary-grid gpu-grid">
         <section class="panel padded">
             <h2>Service status</h2>
-            <div class="info-line"><span>State</span><b>@service.State @service.SubState</b></div>
+            <div class="info-line"><span>State</span><ServiceBadge Service="service" /></div>
             <div class="info-line"><span>Systemd unit</span><b class="mono">@service.Unit</b></div>
             <div class="info-line"><span>Scope</span><b>@service.Scope</b></div>
             <div class="info-line"><span>Main PID</span><b>@(service.Pid?.ToString() ?? "—")</b></div>
+            @if (service.Port is int port)
+            {
+                <div class="info-line"><span>Port</span><b>@port</b></div>
+            }
+            @if (!string.IsNullOrWhiteSpace(service.Path))
+            {
+                <div class="info-line"><span>Working directory</span><b class="mono">@service.Path</b></div>
+            }
             @if (service.Error is not null)
             {
                 <p class="muted">@service.Error</p>
@@ -51,44 +72,47 @@
             <div class="info-line"><span>CPU time since start</span><b>@(service.CpuTime is TimeSpan cpu ? $"{cpu.TotalSeconds:0.0} s" : "—")</b></div>
             <div class="info-line"><span>Tasks</span><b>@(service.Tasks?.ToString() ?? "—")</b></div>
             <div class="info-line"><span>Compute VRAM</span><b>@(service.ComputeVramMiB(Telemetry.Current.Gpu?.ComputeProcesses) is long mib ? $"{mib:N0} MiB" : "—")</b></div>
-            <p class="muted">Compute VRAM covers NVIDIA processes matched to this service. A dash means no attributable reading.</p>
+            <p class="small-muted">Compute VRAM comes from matched NVIDIA processes.</p>
         </section>
     </div>
 
-    <ServiceJournal @key="service.Id" WorkloadId="@service.Id" @ref="mainJournal" />
-
     @if (supportingServices.Length > 0)
     {
-        <div class="supporting-services">
-            <h2>Supporting services</h2>
+        <section class="panel supporting-services">
+            <div class="panel-heading"><h2>Supporting services</h2></div>
             @foreach (var support in supportingServices)
             {
-                <section class="panel supporting-service" @key="support.Id">
-                    <div class="padded">
-                        <h3>@support.Name</h3>
-                        <div class="info-line"><span>State</span><b>@support.State @support.SubState</b></div>
-                        <div class="info-line"><span>Systemd unit</span><b class="mono">@support.Unit</b></div>
-                        @if (support.Error is not null)
-                        {
-                            <p class="muted">@support.Error</p>
-                        }
-                    </div>
+                <details class="supporting-service" @key="support.Id">
+                    <summary>
+                        <span><strong>@support.Name</strong><small class="mono">@support.Unit</small></span>
+                        <ServiceBadge Service="support" />
+                    </summary>
+                    @if (support.Error is not null)
+                    {
+                        <p class="small-muted padded">@support.Error</p>
+                    }
                     <ServiceJournal WorkloadId="@support.Id" LogLabel="@($"Recent logs for {support.Name}")" />
-                </section>
+                </details>
             }
-        </div>
+        </section>
     }
+
+    <ServiceJournal @key="service.Id" WorkloadId="@service.Id" @ref="mainJournal" />
+}
+else if (resolvedId == Id)
+{
+    <div class="notice">No registered application matches this address.</div>
 }
 else
 {
-    <div class="notice">No registered application matches this address.</div>
+    <p class="muted" role="status">Loading service…</p>
 }
 
 @code {
     [Parameter] public string Id { get; set; } = "";
 
     private WorkloadState? item;
-    private string? loadedId, pending, notice;
+    private string? loadedId, resolvedId, pending, notice;
     private WorkloadState[] supportingServices = [];
     private ServiceJournal? mainJournal;
     private bool busy;
@@ -103,6 +127,7 @@ else
         if (item?.Id != Id)
         {
             item = null;
+            resolvedId = null;
             supportingServices = [];
             await RefreshAsync();
         }
@@ -121,6 +146,7 @@ else
         {
             if (id != Id) return;
             item = service;
+            resolvedId = id;
             supportingServices = support.OfType<WorkloadState>().ToArray();
         });
     }
