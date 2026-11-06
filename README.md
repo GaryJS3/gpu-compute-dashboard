@@ -9,13 +9,14 @@ The UI takes its direction from the **Command Center 01** HTML concept: dark sid
 - Live **Linux host** sampling: CPU from `/proc/stat`, available RAM from `/proc/meminfo`, root filesystem and uptime.
 - Live **NVIDIA GPU** sampling through `nvidia-smi` (utilization, VRAM, temperature, power, clocks, driver).
 - Experimental **legacy ROCm SMI** detection for AMD nodes, with unavailable metrics clearly marked.
+- NVIDIA compute VRAM by process, with workload attribution through systemd cgroups on cgroup v2 hosts.
 - Rolling telemetry chart (in-memory, not persisted).
 - Inspect explicitly registered **systemd system and user services**: state, main PID, unit memory.
 - Start/stop/restart configured units, with confirmation, **disabled on real machines by default**.
 - Per-unit journal output, registered NFS mount validation, application launch links.
 - Development demonstration mode with sample V100 values and simulated controls.
 
-**Not implemented:** automatic service discovery/adoption, Docker management, GPU per-process VRAM attribution, persisted metrics, model management, configuration editing, centralized orchestration, per-user accounts or backup/migration automation. These are follow-on tasks.
+**Not implemented:** automatic service discovery/adoption, Docker management, persisted metrics, model management, configuration editing, centralized orchestration, per-user accounts or backup/migration automation. These are follow-on tasks.
 
 ## Run
 

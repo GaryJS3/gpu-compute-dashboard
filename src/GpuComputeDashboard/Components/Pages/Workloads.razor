@@ -1,6 +1,7 @@
 @page "/workloads"
 @inherits LivePage
 @inject WorkloadManager Manager
+@inject TelemetryMonitor Telemetry
 
 <PageTitle>Workloads · VectorGPU</PageTitle>
 <div class="page-head"><div><div class="eyebrow"><span class="blue-dot"></span> SERVICE MANAGEMENT</div><h1>Workloads<span class="accent">.</span></h1><p>Inspect registered systemd services and control permitted units.</p></div><div class="head-buttons"><a class="button secondary" href="/settings">Configure inventory ↗</a></div></div>
@@ -17,17 +18,18 @@
 <div class="panel table-panel">
     <div class="table-toolbar"><label class="search-box">⌕ <input placeholder="Search services, units, categories…" aria-label="Filter workloads" @bind="search" @bind:event="oninput" /></label>
         <div class="toggle-group"><button class="@(filter == "all" ? "selected" : "")" @onclick='() => SetFilter("all")'>All</button><button class="@(filter == "running" ? "selected" : "")" @onclick='() => SetFilter("running")'>Running</button><button class="@(filter == "stopped" ? "selected" : "")" @onclick='() => SetFilter("stopped")'>Inactive</button></div></div>
-    <div class="table-scroll"><table><thead><tr><th>APPLICATION</th><th>SYSTEMD UNIT</th><th>MAIN PID</th><th>RAM</th><th>STATUS</th><th class="align-right">ACTIONS</th></tr></thead><tbody>
+    <div class="table-scroll"><table><thead><tr><th>APPLICATION</th><th>SYSTEMD UNIT</th><th>MAIN PID</th><th>RAM</th><th>COMPUTE VRAM</th><th>STATUS</th><th class="align-right">ACTIONS</th></tr></thead><tbody>
         @foreach (var item in Filtered)
         {
             <tr><td><div class="table-name"><span class="app-avatar">@Icon(item.Category)</span><div><strong>@item.Name</strong><small>@item.Category · @(item.Port?.ToString() ?? "no port")</small></div></div></td>
                 <td><span class="mono">@item.Unit</span><div class="small-muted">@item.Scope service</div></td>
                 <td class="mono">@(item.Pid?.ToString() ?? "—")</td><td>@(item.MemoryMb?.ToString("0") ?? "—") MB</td>
+                <td>@(item.ComputeVramMiB(Telemetry.Current.Gpu?.ComputeProcesses) is long mib ? $"{mib:N0} MiB" : "—")</td>
                 <td><span class="state-tag @(item.Running ? "up" : item.Missing ? "missing" : "")"><span class="status-indicator @(item.Running ? "" : "warning")"></span>@item.State</span>@if (!string.IsNullOrWhiteSpace(item.Error)) { <div class="small-muted" title="@item.Error">Details in service configuration</div> }</td>
                 <td class="align-right"><div class="action-group"><button class="mini-button" disabled="@(!CanControl || item.Running)" @onclick='() => Ask(item, "start")'>Start</button><button class="mini-button" disabled="@(!CanControl || !item.Running)" @onclick='() => Ask(item, "restart")'>Restart</button><button class="mini-button danger-text" disabled="@(!CanControl || !item.Running)" @onclick='() => Ask(item, "stop")'>Stop</button></div></td></tr>
         }
     </tbody></table></div>
-    <div class="panel-foot"><span>The dashboard only manages explicitly configured units.</span><span>GPU per-process attribution is not yet implemented.</span></div>
+    <div class="panel-foot"><span>The dashboard only manages explicitly configured units.</span><span>VRAM shows matched NVIDIA compute processes. A dash means no attributable reading.</span></div>
 </div>
 
 @code {
