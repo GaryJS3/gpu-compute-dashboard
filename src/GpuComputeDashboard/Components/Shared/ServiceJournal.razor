@@ -1,0 +1,41 @@
+@inject WorkloadManager Manager
+
+<section class="panel">
+    <div class="panel-heading">
+        <div><h3>Recent logs</h3><p>Latest 50 journal lines</p></div>
+        <button class="button secondary" disabled="@loading" @onclick="RefreshAsync">Refresh logs</button>
+    </div>
+    <pre class="terminal" aria-label="@LogLabel">@logs</pre>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string WorkloadId { get; set; } = "";
+    [Parameter] public string LogLabel { get; set; } = "Recent service logs";
+
+    private string? loadedId;
+    private string logs = "Loading logs…";
+    private bool loading;
+
+    protected override Task OnParametersSetAsync() => loadedId == WorkloadId ? Task.CompletedTask : RefreshAsync();
+
+    public async Task RefreshAsync()
+    {
+        var id = WorkloadId;
+        loadedId = id;
+        loading = true;
+        try
+        {
+            var output = await Manager.ReadJournalAsync(id, 50);
+            if (id == WorkloadId)
+                logs = string.IsNullOrWhiteSpace(output) ? "No recent journal entries." : output;
+        }
+        finally
+        {
+            if (id == WorkloadId)
+            {
+                loading = false;
+                StateHasChanged();
+            }
+        }
+    }
+}

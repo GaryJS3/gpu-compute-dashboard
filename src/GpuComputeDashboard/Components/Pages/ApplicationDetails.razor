@@ -53,13 +53,29 @@
         </section>
     </div>
 
-    <section class="panel">
-        <div class="panel-heading">
-            <div><h2>Recent logs</h2><p>Latest 50 journal lines</p></div>
-            <button class="button secondary" disabled="@loadingLogs" @onclick="LoadLogsAsync">Refresh logs</button>
+    <ServiceJournal @key="service.Id" WorkloadId="@service.Id" @ref="mainJournal" />
+
+    @if (supportingServices.Length > 0)
+    {
+        <div class="supporting-services">
+            <h2>Supporting services</h2>
+            @foreach (var support in supportingServices)
+            {
+                <section class="panel supporting-service" @key="support.Id">
+                    <div class="padded">
+                        <h3>@support.Name</h3>
+                        <div class="info-line"><span>State</span><b>@support.State @support.SubState</b></div>
+                        <div class="info-line"><span>Systemd unit</span><b class="mono">@support.Unit</b></div>
+                        @if (support.Error is not null)
+                        {
+                            <p class="muted">@support.Error</p>
+                        }
+                    </div>
+                    <ServiceJournal WorkloadId="@support.Id" LogLabel="@($"Recent logs for {support.Name}")" />
+                </section>
+            }
         </div>
-        <pre class="terminal" aria-label="Recent service logs">@logs</pre>
-    </section>
+    }
 }
 else
 {
@@ -71,8 +87,9 @@ else
 
     private WorkloadState? item;
     private string? loadedId, pending, notice;
-    private string logs = "Loading logs…";
-    private bool busy, loadingLogs;
+    private WorkloadState[] supportingServices = [];
+    private ServiceJournal? mainJournal;
+    private bool busy;
     private bool CanControl => Manager.Options.DemoMode || Manager.Options.EnableServiceControls;
 
     protected override async Task OnParametersSetAsync()
@@ -80,35 +97,30 @@ else
         if (loadedId == Id) return;
         loadedId = Id;
         pending = notice = null;
-        busy = loadingLogs = false;
-        logs = "Loading logs…";
+        busy = false;
         if (item?.Id != Id)
         {
             item = null;
+            supportingServices = [];
             await RefreshAsync();
         }
-        if (item is not null && item.Id == Id)
-            await LoadLogsAsync();
     }
 
     protected override async Task RefreshAsync()
     {
         var id = Id;
-        var result = await Manager.GetAsync(id);
+        var definition = Manager.Options.Workloads.FirstOrDefault(workload => workload.Id == id);
+        var supportingIds = definition?.SupportingWorkloadIds.Where(supportId => supportId != id).Distinct() ?? [];
+        var serviceTask = Manager.GetAsync(id);
+        var supportTask = Task.WhenAll(supportingIds.Select(supportId => Manager.GetAsync(supportId)));
+        var service = await serviceTask;
+        var support = await supportTask;
         await InvokeAsync(() =>
         {
-            if (id == Id) item = result;
+            if (id != Id) return;
+            item = service;
+            supportingServices = support.OfType<WorkloadState>().ToArray();
         });
-    }
-
-    private async Task LoadLogsAsync()
-    {
-        var id = Id;
-        loadingLogs = true;
-        var output = await Manager.ReadJournalAsync(id, 50);
-        if (id != Id) return;
-        logs = string.IsNullOrWhiteSpace(output) ? "No recent journal entries." : output;
-        loadingLogs = false;
     }
 
     private async Task ApplyAsync()
@@ -122,6 +134,7 @@ else
         notice = result.Message;
         busy = false;
         await RefreshAsync();
-        await LoadLogsAsync();
+        if (service.Id == Id && mainJournal is not null)
+            await mainJournal.RefreshAsync();
     }
 }

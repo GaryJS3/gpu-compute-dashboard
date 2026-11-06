@@ -40,6 +40,8 @@ Production settings enable real monitoring and disable service changes. The web 
 
 Define `Dashboard:Workloads` and `Dashboard:Mounts` in `appsettings.Production.json` using the development configuration as a schema example. Set a workload's `ShowInApplications` to `false` for a supporting service that should stay in Workloads and Journal without appearing in the application launcher. Verify service unit names with `systemctl list-unit-files --type=service` and `systemctl --user list-unit-files --type=service`.
 
+Set an application's `SupportingWorkloadIds` to a list of registered workload IDs to show their status and recent journal entries on its details page. Each supporting service keeps its own journal and Workloads entry.
+
 Run the dashboard as a user service under the account that owns any registered user units so that their systemd manager and journal are accessible. The service files in `deploy/` are templates. Review the account, paths, and permissions for each node.
 
 Keep `Dashboard:EnableServiceControls` off for shared read-only deployments. Enable it only where every person with access is authorized to operate the configured units. The app never runs arbitrary command text; all operations target configured, validated systemd units.
